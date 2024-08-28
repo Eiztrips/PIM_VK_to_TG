@@ -1,6 +1,7 @@
 import vk_api, requests
 from vk_api.bot_longpoll import VkBotLongPoll
 from config import vk_c, tg_c
+import json
 
 while True:
     try:
@@ -29,22 +30,22 @@ while True:
                              "parse_mode": "HTML"
                              })
 
-        def handle_photo(message): #Доработать обработку более 2 фотографий
+        def handle_photo(message):
             attachments = message['attachments']
             media_group = []
-
             for attachment in attachments:
                 if attachment['type'] == 'photo':
-                    image = attachment['photo']['orig_photo']['url']
+                    image = {"type": "photo", "media": f"{attachment['photo']['orig_photo']['url']}"}
                     media_group.append(image)
+            media_group[0]["caption"] = f"{message['text']}"
+            response = requests.post(
+                f"https://api.telegram.org/bot{telegram_bot_token}/sendMediaGroup",
+                data={
+                     'chat_id': telegram_chat_id,
+                     'media': json.dumps(media_group)
+                     })
+            print(response.json())
 
-            for img in media_group:
-                requests.post(
-                    f"https://api.telegram.org/bot{telegram_bot_token}/sendPhoto",
-                    data={
-                         'chat_id': telegram_chat_id,
-                         'photo': img
-                         })
 
         def handle_video(message): #Доработать передачу видео
             attachments = message['attachments']
@@ -145,6 +146,7 @@ while True:
                             })
 
         def headler(message):
+            print('headler')
             handle_photo(message)
             handle_video(message)
             handle_audio_message(message)
@@ -155,11 +157,12 @@ while True:
             handle_wall(message)
 
         for event in longpoll.listen():
-            print(f"Новое сообщение: \n\n{event.obj.message}\n\n")
+            response = vk.messages.getById(message_ids=event.obj.message['id'])
+            print(f"Новое сообщение: \n\n{json.dumps(response)}\n\n")
 
             message_author_info = vk.users.get(user_ids=event.obj.message['from_id'])
             message_author = f"{message_author_info[0]['first_name']} {message_author_info[0]['last_name']}"
-            message_object = event.obj.message
+            message_object = response['items'][0]
 
             if message_object['fwd_messages'] != []:
                 while message_object['fwd_messages'][0]['text'] == '' and message_object['fwd_messages'][0]['attachments'] == []:
@@ -172,20 +175,23 @@ while True:
                     message_author_info_fwd = vk.users.get(user_ids=fwd_message['from_id'])
                     message_author_fwd = f"{message_author_info_fwd[0]['first_name']} {message_author_info_fwd[0]['last_name']}"
 
-                    handle_text(f'{message_author} ✉️\n\nПереслано от {message_author_fwd} 🔊', {True: f'{fwd_message["text"]}', False: f''}["text" in fwd_message])
+                    atachments_list = [attachment['type'] for attachment in fwd_message['attachments']]
+
+                    handle_text(f'{message_author} ✉️\n\nПереслано от {message_author_fwd} 🔊', {True: f'{fwd_message["text"]}', False: f''}["text" in fwd_message and (not('photo' in atachments_list))])
 
                     if 'attachments' in fwd_message and fwd_message['attachments'] != []:
                         headler(fwd_message)
             else:
-                handle_text(f'{message_author} ✉️', {True: f'{message_object["text"]}', False: f''}['text' in message_object])
+                atachments_list = [attachment['type'] for attachment in message_object['attachments']]
+
+                handle_text(f'{message_author} ✉️', {True: f'{message_object["text"]}', False: f''}['text' in message_object and (not('photo' in atachments_list))])
                 if 'attachments' in message_object and message_object['attachments'] != []:
                     headler(message_object)
 
     except Exception:
-        pass
+        print(Exception)
 
 '''
 ЗАДАЧИ
-- Обойти группировку сообщений (при отсылании более 3 сообщений, json пакет регистрирует только первое сообщение)
 - Доработать пересылку аудиозаписей и видеозаписей
 '''
