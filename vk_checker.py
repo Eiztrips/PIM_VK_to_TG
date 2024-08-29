@@ -33,9 +33,12 @@ while True:
                              })
             print(response.json())
         
+
+
         def handle_photo(message):
             attachments = message['attachments']
             media_group = []
+
             for attachment in attachments:
                 if attachment['type'] == 'photo':
                     image = {"type": "photo", "media": f"{attachment['photo']['orig_photo']['url']}"}
@@ -49,9 +52,10 @@ while True:
                          'chat_id': telegram_chat_id,
                          'media': json.dumps(media_group)
                          })
+                
                 print(response.json())
         
-        def handle_video(message): #Доработать передачу видео
+        def handle_video(message):
             attachments = message['attachments']
         
             for attachment in attachments:
@@ -61,7 +65,7 @@ while True:
                        f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                        data={
                             "chat_id": telegram_chat_id,
-                            "text": f"<b>Видеозапись: {title}</b>",
+                            "text": f"<a href='https://vk.com/video{attachment['video']['owner_id']}_{attachment['video']['id']}'>Видеозапись: {title}</a>",
                             "parse_mode": "HTML"
                             })
                     print(response.json())
@@ -108,15 +112,15 @@ while True:
                 
                     doc_url = attachment['doc']['url']
                     doc_title = attachment['doc']['title']
-        
+
                     response = requests.post(
                        f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                        data={
                             "chat_id": telegram_chat_id,
                             "text": f"<b><a href='{doc_url}'>{doc_title}</a></b>",
                             "parse_mode": "HTML"
-        
                             })
+                    
                     print(response.json())
         
         def handle_sticker(message):
@@ -160,7 +164,7 @@ while True:
                        f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                        data={
                             "chat_id": telegram_chat_id,
-                            "text": f"<b>Запись со стены сообщества: {attachment['wall']['from']['name']}</b>",
+                            "text": f"<b>Запись со стены сообщества</b>",
                             "parse_mode": "HTML"
                             })
                     
@@ -213,9 +217,9 @@ while True:
 
     except Exception:
         print(Exception)
-        pass
 
 '''
 ЗАДАЧИ
-- Доработать пересылку видеозаписей
+- Доработать обработку документов и записей со стен сообществ
+- Объединять всё в одном сообщении
 '''
