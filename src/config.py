@@ -1,13 +1,17 @@
 vk_c = {
-    'token': '',
-    'group_id': 
+    'token': 'VK bot token',
+    'group_id' : 
 }
 
 
 tg_c = {
-    'tg_tkn': '',
+    'tg_tkn': 'TG bot token',
     'tg_chat_id': ''
 }
 
 happy_b_day = {
+    'mounth-day': 'name',
+    'mounth-day': 'name',
+    'mounth-day': 'name',
+    ...
 }
