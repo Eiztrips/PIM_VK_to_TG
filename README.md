@@ -6,4 +6,4 @@ How do I launch a bot?
      - Follow the instructions in the file and fill it out
   - run vk_checker.py
 
-![art](https://github.com/user-attachments/assets/d226428b-3d20-4635-94fa-9a0ca9dfd58e)
+![Eiztrips](https://github.com/user-attachments/assets/abd529fd-02f4-4ff8-8c4f-f638c30ccd4b)
