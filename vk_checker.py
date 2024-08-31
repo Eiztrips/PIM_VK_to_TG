@@ -42,7 +42,7 @@ while True:
                     src.handle_func.handle_text(f'{message_author} ✉️\n\nПереслано от {message_author_fwd} 🔊', {True: f'{fwd_message["text"]}', False: ''}["text" in fwd_message and ('photo' not in atachments_list)])
 
                     if 'attachments' in fwd_message and fwd_message['attachments'] != []:
-                        src.handle_func.headler(fwd_message)
+                        src.handle_func.handler(fwd_message)
                         
             else:
 
@@ -52,8 +52,8 @@ while True:
                 if 'attachments' in message_object and message_object['attachments'] != []:
                     src.handle_func.handler(message_object)
 
-    except Exception:
-        print(Exception)
+    except Exception as e:
+        print(f"\n\nПроизошла ошибка: \n{e}\n\n")
 
 '''
 ЗАДАЧИ
