@@ -39,7 +39,7 @@ while True:
                     message_author_fwd = f"{message_author_info_fwd[0]['first_name']} {message_author_info_fwd[0]['last_name']}"
 
                     atachments_list = [attachment['type'] for attachment in fwd_message['attachments']]
-                    src.handle_func.handle_text(f'{message_author} ✉️\n\nПереслано от {message_author_fwd} 🔊', {True: f'{fwd_message["text"]}', False: ''}["text" in fwd_message and ('photo' not in atachments_list)])
+                    src.handle_func.handle_text({True: f'{message_author} ✉️\n\nПереслано от {message_author_fwd} 🔊', False: ''}[message_object["peer_id"] != 2000000006], {True: f'{fwd_message["text"]}', False: ''}["text" in fwd_message and ('photo' not in atachments_list)])
 
                     if 'attachments' in fwd_message and fwd_message['attachments'] != []:
                         src.handle_func.handler(fwd_message)
@@ -47,7 +47,8 @@ while True:
             else:
 
                 atachments_list = [attachment['type'] for attachment in message_object['attachments']]
-                src.handle_func.handle_text({True: f'{message_author} ✉️', False: ''}[message_object['text'] != 'Бот временно уходит на тех. работы (Будет отключен около часа)'], {True: f'{message_object["text"]}', False: ''}['text' in message_object and ('photo' not in atachments_list)])
+                print(message_object["peer_id"], type(message_object["peer_id"]))
+                src.handle_func.handle_text({True: f'{message_author} ✉️', False: ''}[message_object["peer_id"] != 2000000006], {True: f'{message_object["text"]}', False: ''}['text' in message_object and ('photo' not in atachments_list)])
 
                 if 'attachments' in message_object and message_object['attachments'] != []:
                     src.handle_func.handler(message_object)
