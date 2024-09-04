@@ -23,15 +23,22 @@ while True:
             message_author_info = vk.users.get(user_ids=event.obj.message['from_id'])
             message_author = f"{message_author_info[0]['first_name']} {message_author_info[0]['last_name']}"
             message_object = package['items'][0]
+            repeat = False
 
-            if message_object['fwd_messages'] != []:
-
+            def main():
+                global message_object, repeat
                 while message_object['fwd_messages'][0]['text'] == '' and message_object['fwd_messages'][0]['attachments'] == []:
 
                     message_object = message_object['fwd_messages'][0]
+                    
 
                     if message_object['fwd_messages'] == []:
                         break
+                
+                if 'text' in message_object['fwd_messages'][0]['fwd_messages'][0]:
+                        repeat = True
+                        
+                if repeat: message_object = message_object['fwd_messages'][0]
 
                 for fwd_message in message_object['fwd_messages']:
 
@@ -44,18 +51,25 @@ while True:
 
                     if 'attachments' in fwd_message and fwd_message['attachments'] != []:
                         src.handle_func.handler(fwd_message)
+
+                if repeat:
+                    main()
+                    repeat = False
+
+            if message_object['fwd_messages'] != [] and 'fwd_messages' in message_object:
+                main()
+
                         
             else:
 
                 atachments_list = [attachment['type'] for attachment in message_object['attachments']]
-                print(message_object["peer_id"], type(message_object["peer_id"]))
                 src.handle_func.handle_text({True: f'{message_author} ✉️', False: ''}[message_object["peer_id"] != 2000000006], {True: f'{message_object["text"]}', False: ''}['text' in message_object and ('photo' not in atachments_list)])
 
                 if 'attachments' in message_object and message_object['attachments'] != []:
                     src.handle_func.handler(message_object)
 
     except Exception as e:
-        print(f"\n\nПроизошла ошибка: \n{e}\n\n")
+        print(f"\n\nПроизошла ошибка: \n{e}\n\n", f'[{str(e) == "fwd_messages"}]')
 
 '''
 ЗАДАЧИ
