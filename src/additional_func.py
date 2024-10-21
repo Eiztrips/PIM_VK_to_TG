@@ -1,6 +1,7 @@
 import datetime, requests
 from src.config import tg_c, happy_b_day
 
+
 telegram_bot_token = tg_c['tg_tkn']
 telegram_chat_id = tg_c['tg_chat_id']
 

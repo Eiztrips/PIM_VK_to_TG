@@ -1,28 +1,35 @@
-import requests, json
-from src.config import tg_c
+import requests, json, vk_api
+from src.config import tg_c, vk_c
 
 telegram_bot_token = tg_c['tg_tkn']
 telegram_chat_id = tg_c['tg_chat_id']
 
-def handle_text(user, text):
-            response = requests.post(
-                        f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
-                        data={
-                             "chat_id": telegram_chat_id,
-                             "text": f"<i>{user}</i>\n\n<b>{text}</b>",
-                             "parse_mode": "HTML"
-                             })
-            print(response.json())
+vk_session = vk_api.VkApi(token = vk_c['token'])
+vk = vk_session.get_api()
 
-def handle_user(user):
-    response = requests.post(
-                f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
-                data={
-                     "chat_id": telegram_chat_id,
-                     "text": f"<i>{user}</i>",
-                     "parse_mode": "HTML"
-                     })
-    print(response.json())
+def handle_text(user, text, mode=None):
+            if mode == None:
+                response = requests.post(
+                            f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
+                            data={
+                                 "chat_id": telegram_chat_id,
+                                 "text": f"<code>{user}</code>\n\n<strong><pre>{text}</pre></strong>",
+                                 "parse_mode": "HTML"
+                                 })
+                print(response.json())
+            else:
+                response = requests.post(
+                            f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
+                            data={
+                                 "chat_id": telegram_chat_id,
+                                 "text": f"{text}",
+                                 "parse_mode": "HTML"
+                                 })
+                print(response.json())
+
+def get_user_name(message):
+    message_author_info = vk.users.get(user_ids=message['from_id'])
+    return f"{message_author_info[0]['first_name']} {message_author_info[0]['last_name']}"
 
 def handle_photo(message):
     attachments = message['attachments']
@@ -32,7 +39,8 @@ def handle_photo(message):
             image = {"type": "photo", "media": f"{attachment['photo']['orig_photo']['url']}"}
             media_group.append(image)
     if media_group != []:
-        media_group[0]["caption"] = f"{message['text']}"
+        media_group[0]["caption"] = f"<code>{get_user_name(message)} ✉</code>\n\n<pre>{message['text']}</pre>"
+        media_group[0]["parse_mode"] = "HTML"
         response = requests.post(
             f"https://api.telegram.org/bot{telegram_bot_token}/sendMediaGroup",
             data={
@@ -50,7 +58,7 @@ def handle_video(message):
                f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                data={
                     "chat_id": telegram_chat_id,
-                    "text": f"<a href='https://vk.com/video{attachment['video']['owner_id']}_{attachment['video']['id']}'>Видеозапись: {title}</a>",
+                    "text": f"<a href='https://vk.com/video{attachment['video']['owner_id']}_{attachment['video']['id']}'><code>Видеозапись: {title}</code></a>",
                     "parse_mode": "HTML"
                     })
             print(response.json())
@@ -92,22 +100,27 @@ def handle_doc(message):
                f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                data={
                     "chat_id": telegram_chat_id,
-                    "text": f"<b><a href='{doc_url}'>{doc_title}</a></b>",
+                    "text": f"<a href='{doc_url}'>{doc_title}</a>",
                     "parse_mode": "HTML"
                     })
             print(response.json())
 
 def handle_sticker(message):
+    message_author_info = vk.users.get(user_ids=message['from_id'])
+    message_author = f"{message_author_info[0]['first_name']} {message_author_info[0]['last_name']}"
     attachments = message['attachments']
     for attachment in attachments:
         if attachment['type'] == 'sticker':
             for sticker_image in attachment['sticker']['images']:
                 if sticker_image['width'] == 128 and sticker_image['height'] == 128:
+                    image = {"type": "photo", "media": f"{sticker_image['url']}", "caption": f"{message_author} ✉"}
+                    media_group = []
+                    media_group.append(image)
                     response = requests.post(
-                        f"https://api.telegram.org/bot{telegram_bot_token}/sendPhoto",
+                        f"https://api.telegram.org/bot{telegram_bot_token}/sendMediaGroup",
                         data={
                              "chat_id": telegram_chat_id,
-                             "photo": sticker_image['url']
+                             "media": json.dumps(media_group)
                              })
                     print(response.json())
 
@@ -119,7 +132,7 @@ def handle_poll(message):
                f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
                data={
                     "chat_id": telegram_chat_id,
-                    "text": f"<b>Опрос: {attachment['poll']['question']}</b>",
+                    "text": f"<code>Опрос: {attachment['poll']['question']}</code>",
                     "parse_mode": "HTML"
                     })
             print(response.json())
@@ -128,14 +141,15 @@ def handle_wall(message):
     attachments = message['attachments']
     for attachment in attachments:
         if attachment['type'] == 'wall':
-            response = requests.post(
-               f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
-               data={
-                    "chat_id": telegram_chat_id,
-                    "text": "<b>Запись со стены сообщества</b>",
-                    "parse_mode": "HTML"
-                    })
-            print(response.json())
+            if "text" in attachment['wall'] and attachment['wall']["text"] != "":
+                post_id = {True: str(attachment['wall']['from_id'])[1:], False: attachment['wall']['from_id']}[str(attachment['wall']['from_id']).startswith('-')]
+                group_of_wall = vk.groups.getById(group_id=post_id)
+                group_name = group_of_wall[0]['name']
+                handle_text(group_name+" ☆", attachment['wall']["text"])
+                handle_text(None, f"\n\n<b><a href='https://vk.com/wall-{post_id}_{attachment['wall']['id']}'>✘ ДЛЯ ПРОСМОТРА ВСЕЙ ЗАПИСИ, НАЖМИТИ СЮДА!</a></b>", 1)
+            else:
+                handle_text(group_name+" ☆", "")
+
 
 def handler(message):
     handle_photo(message)
@@ -146,3 +160,19 @@ def handler(message):
     handle_sticker(message)
     handle_poll(message)
     handle_wall(message)
+    handle_reply(message)
+
+def handle_reply(message):
+    if "fwd_messages" in message:
+        for fwd_message in message["fwd_messages"]:
+            message_author_info = vk.users.get(user_ids=fwd_message['from_id'])
+            message_author = f"{message_author_info[0]['first_name']} {message_author_info[0]['last_name']}"
+            response = requests.post(
+                    f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
+                    data={
+                         "chat_id": telegram_chat_id,
+                         "text": f"<code>Ссылка на сообщение от {message_author} ✉</code>\n\n<pre>{fwd_message['text']}</pre>",
+                         "parse_mode": "HTML"
+                         })
+            print(response.json())
+            handler(fwd_message)
